@@ -1,0 +1,22 @@
+services:
+  ml-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    image: ml-api:dev
+    ports:
+      - "8000:8000"
+    environment:
+      WEBHOOK_URL: http://webhook-receiver/anything/notify
+      LOG_LEVEL: INFO
+      APP_VERSION: 0.1.0
+    depends_on:
+      webhook-receiver:
+        condition: service_started
+    restart: unless-stopped
+
+  webhook-receiver:
+    image: kennethreitz/httpbin
+    ports:
+      - "8080:80"
+    restart: unless-stopped

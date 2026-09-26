@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "mlops-demo"
+version = "0.1.0"
+description = "Teaching project: ML model, Docker, Compose, and webhooks"
+authors = ["MLOps Course"]
+readme = "README.md"
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.0"
+uvicorn = { version = "^0.30.6", extras = ["standard"] }
+pydantic = "^2.9.2"
+scikit-learn = "^1.5.2"
+numpy = "^2.1.1"
+requests = "^2.32.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+httpx = "^0.27.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
