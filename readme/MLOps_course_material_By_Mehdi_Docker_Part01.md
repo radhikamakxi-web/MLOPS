@@ -222,7 +222,7 @@ graph TD
 10. [Utility Scripts](#10-utility-scripts)
 11. [Ignore Files](#11-ignore-files)
 12. [How to Run Everything](#12-how-to-run-everything)
-  - [Publish the project on a feature branch](#12-6-publish-the-project-on-a-feature-branch)
+  - [Configure Git and publish a feature branch](#12-6-configure-git-and-publish-a-feature-branch)
 13. [Classroom Teaching Flow](#13-classroom-teaching-flow)
 14. [Exercises](#14-exercises)
 15. [Troubleshooting](#15-troubleshooting)
@@ -446,13 +446,19 @@ For example, a successful installation may display:
 git version 2.40.0.windows.1
 ```
 
-Configure the name and email that Git will record in your commits. Replace the
-example values with your own name and the email address associated with your
-Git hosting account:
+Configure the name and email Git will record as the author of your commits:
 
 ```powershell
-git config --global user.name "Your Name"
-git config --global user.email "you@example.com"
+git config --global user.name "Mehdi Zadeh"
+git config --global user.email "zadeh180mehdi@gmail.com"
+```
+
+These are commit identity settings; they do not sign you in to GitHub. Confirm
+the configured values with:
+
+```powershell
+git config --global user.name
+git config --global user.email
 ```
 
 ### Installing uv on Windows
@@ -2434,31 +2440,85 @@ Then rebuild:
 docker compose up --build
 ```
 
-### 12.6 — Publish the project on a feature branch
+### 12.6 — Configure Git and publish a feature branch
 
-From the project root, create and switch to the `feature/mlops_01` branch:
+Run these commands from the project root. First check the current branch and
+whether there are uncommitted files:
+
+```powershell
+git status --short --branch
+```
+
+`git status` reports the current branch and the state of the working tree.
+Before staging, inspect the listed files and make sure secrets, `.env` files,
+virtual environments, and other local-only files are not included.
+
+Check that the GitHub repository is configured as the `origin` remote:
+
+```powershell
+git remote -v
+```
+
+If no `origin` is listed, add the repository URL provided by your instructor
+or organization:
+
+```powershell
+git remote add origin https://github.com/OWNER/REPOSITORY.git
+```
+
+Choose the branch command that matches your situation. To create it for the
+first time:
 
 ```powershell
 git switch -c feature/mlops_01
 ```
 
-Review the files before staging, especially to ensure that secrets and local
-environment files are not included. Stage the project, review the staged
-changes, and commit:
+If the branch already exists locally, switch to it instead:
 
 ```powershell
-git status
-git add -A
-git status
-git commit -m "Add MLOps demo project"
+git switch feature/mlops_01
 ```
 
-Push the branch and configure upstream tracking. The Git repository must have
-a remote named `origin` configured:
+If it exists on GitHub but not on your computer, fetch it and create a local
+tracking branch:
+
+```powershell
+git fetch origin
+git switch --track origin/feature/mlops_01
+```
+
+Check the branch and working tree again, then stage and review the proposed
+commit:
+
+```powershell
+git status --short --branch
+git add -A
+git status
+git diff --cached
+```
+
+`git diff --cached` shows exactly what will be committed. If it includes files
+that should not be shared, unstage them with `git restore --staged <path>` and
+review the staged changes again.
+
+Commit the reviewed changes and verify the new commit:
+
+```powershell
+git commit -m "Add MLOps demo project"
+git log -1 --oneline
+git status --short --branch
+```
+
+Push the branch and set its upstream tracking branch the first time:
 
 ```powershell
 git push -u origin feature/mlops_01
 ```
+
+After upstream tracking is set, later commits on this branch can be pushed
+with `git push`. Git Credential Manager may open a browser for GitHub sign-in;
+complete authentication there. GitHub account passwords are not used directly
+for HTTPS Git pushes, and access tokens should never be committed or shared.
 
 ---
 

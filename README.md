@@ -1,95 +1,273 @@
 # MLOps Demo
 
-A small house-price prediction API used to teach FastAPI, Docker, Docker Compose,
-dependency management, tests, and webhooks.
+A small house-price prediction service for learning the practical MLOps path
+from a model to an API, tests, Docker images, Compose services, and a webhook.
+The model is intentionally simple so the focus stays on packaging, deployment,
+and operational workflow.
 
 The full teaching walkthrough is in
 [the course guide](readme/MLOps_course_material_By_Mehdi_Docker_Part01.md).
 
-## Push the project on a feature branch
+## Contents
 
-From the project root, create and switch to the requested branch:
+- [What the project does](#what-the-project-does)
+- [Project files](#project-files)
+- [Prerequisites](#prerequisites)
+- [Run and test locally](#run-and-test-locally)
+- [Use the API](#use-the-api)
+- [Run with Docker Compose](#run-with-docker-compose)
+- [Install the CrewAI skill in VS Code](#install-the-crewai-skill-in-vs-code)
+- [Push a feature branch to GitHub](#push-a-feature-branch-to-github)
+
+## What the project does
+
+The FastAPI service fits a scikit-learn linear regression model when the app
+starts. It uses five synthetic examples that map room count to price, so a
+request for three rooms predicts approximately `300` model units. The service
+provides:
+
+| Route | Purpose |
+| --- | --- |
+| `GET /health` | Return service status and configured app version. |
+| `GET /model/info` | Return model type, feature, target, coefficient, and intercept. |
+| `POST /predict` | Validate a positive room count and return a price prediction. |
+
+When `WEBHOOK_URL` is set, a prediction schedules a best-effort HTTP POST with
+the input and prediction as a background task. Webhook errors are logged and do
+not change the prediction response. This in-process background task is not a
+durable queue and does not retry delivery after a process failure.
+
+## Project files
+
+```text
+app/                    FastAPI app, configuration, model, schemas, webhook
+tests/                  In-process API tests
+scripts/                End-to-end smoke test and optional Flask receiver
+readme/                 Full teaching walkthrough
+requirements.txt        Pinned pip dependencies
+pyproject.toml           Poetry project and dependency configuration
+Dockerfile.fastapi       Pip-based container build
+Dockerfile.poetry        Multi-stage Poetry-based container build
+docker-compose.yml       API and httpbin webhook receiver services
+.dockerignore            Files excluded from Docker build context
+.gitignore               Generated and local-only files excluded from Git
+```
+
+## Prerequisites
+
+- Python 3.11 or newer for local development
+- Docker Desktop with Docker Compose v2 for container workflows
+- Git for version control
+- Node.js LTS only if installing the optional CrewAI skill below
+
+### Windows setup
+
+Install Git for Windows from the official
+[Git for Windows page](https://git-scm.com/install/windows). Open a new
+PowerShell window and verify it:
+
+```powershell
+git --version
+```
+
+For example, successful output may look like:
+
+```text
+git version 2.40.0.windows.1
+```
+
+Configure the name and email Git should record in your commits. Replace the
+examples with your own details:
+
+```powershell
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+Check the values with `git config --global --list`.
+
+Install Python 3.11 or newer from the official Python distribution or use the
+Python launcher if it is already installed. For Docker workflows, install
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) and enable its
+WSL 2 backend if available. Verify Docker from PowerShell:
+
+```powershell
+docker --version
+docker compose version
+```
+
+The optional `uv` Python package manager can be installed in PowerShell with:
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Open a new PowerShell window, then verify the installation:
+
+```powershell
+uv --version
+```
+
+## Run and test locally
+
+From the project root, create and activate a Python 3.11 virtual environment,
+install the pinned dependencies, and run the tests:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+pytest -q
+```
+
+Start the development server:
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+Stop the server with `Ctrl+C`. The interactive API documentation is at
+`http://localhost:8000/docs` and the OpenAPI schema is at
+`http://localhost:8000/openapi.json`.
+
+## Use the API
+
+PowerShell health and metadata checks:
+
+```powershell
+Invoke-RestMethod http://localhost:8000/health
+Invoke-RestMethod http://localhost:8000/model/info
+```
+
+Submit a prediction:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:8000/predict `
+	-Method Post `
+	-ContentType "application/json" `
+	-Body '{"rooms": 3}'
+```
+
+The `rooms` value must be greater than zero. Invalid or missing values receive
+HTTP `422` from FastAPI validation.
+
+## Run with Docker Compose
+
+Build and start the stack from the project root:
+
+```powershell
+docker compose up --build
+```
+
+The API is exposed at `http://localhost:8000`; httpbin is exposed at
+`http://localhost:8080`. Within the Compose network, the API calls
+`http://webhook-receiver/anything/notify`: containers use the service DNS name
+and the receiver's internal port `80`, not the host-mapped port `8080`.
+httpbin echoes received requests; it does not provide a persistent history.
+
+Useful Compose commands:
+
+```powershell
+docker compose ps
+docker compose logs -f ml-api
+docker compose down
+```
+
+The end-to-end `scripts/smoke_test.sh` is a Bash script. Run it from WSL or a
+Bash environment after starting the Compose stack:
+
+```bash
+./scripts/smoke_test.sh
+```
+
+### Choose the Poetry Dockerfile
+
+The default Compose configuration builds with `Dockerfile.fastapi`. To use the
+multi-stage Poetry build instead, change the `ml-api.build.dockerfile` value in
+`docker-compose.yml` to `Dockerfile.poetry`. Generate `poetry.lock` first:
+
+```powershell
+python -m pip install poetry
+poetry lock
+docker compose up --build
+```
+
+The Poetry Dockerfile exports only the main/runtime dependency group into its
+final image. The pip Dockerfile installs from `requirements.txt`.
+
+## Install the CrewAI skill in VS Code
+
+The skill installer requires Node.js, which includes npm and npx. Install the
+current LTS version from the official
+[Node.js download page](https://nodejs.org/en/download), then open a new
+PowerShell window and verify the tools:
+
+```powershell
+node --version
+npm --version
+npx.cmd --version
+```
+
+From the project root, install the CrewAI skills:
+
+```powershell
+npx.cmd skills add crewaiinc/skills
+```
+
+If PowerShell blocks the installer, you may set the execution policy for your
+current user:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+`RemoteSigned` is not unrestricted permission: local scripts may run, while
+downloaded scripts must be signed. Review third-party skill files before use
+and reload VS Code after installation so it can discover the skills.
+
+## Push a feature branch to GitHub
+
+Confirm the GitHub repository is configured as `origin`:
+
+```powershell
+git remote -v
+```
+
+If `origin` is missing, add the repository URL provided by your instructor or
+organization:
+
+```powershell
+git remote add origin https://github.com/OWNER/REPOSITORY.git
+```
+
+Create and switch to the requested branch. This command is for creating the
+branch the first time; if it already exists locally, use
+`git switch feature/mlops_01` instead:
 
 ```powershell
 git switch -c feature/mlops_01
 ```
 
-Review the files that will be included, then stage and commit the project. Make
-sure no secrets or local-only files are included:
+If the branch exists on GitHub but not on your computer, fetch it and create a
+local branch that tracks it:
+
+```powershell
+git fetch origin
+git switch --track origin/feature/mlops_01
+```
+
+Review the changes before staging, and do not include secrets, virtual
+environments, or other local-only files:
 
 ```powershell
 git status
 git add -A
 git status
 git commit -m "Add MLOps demo project"
-```
-
-Push the branch and set its upstream tracking branch. The repository must have
-a remote named `origin` configured:
-
-```powershell
 git push -u origin feature/mlops_01
 ```
 
-## Run locally
-
-Requires Python 3.11 or newer.
-
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-pytest
-uvicorn app.main:app --reload
-```
-
-Open `http://localhost:8000/docs` for the API documentation.
-
-## Install the CrewAI skill in VS Code
-
-Install the Node.js LTS release from the official
-[Node.js download page](https://nodejs.org/en/download) first. This provides
-`npm` and `npx`. Open a new PowerShell window, change to this project directory,
-and run:
-
-```powershell
-npx.cmd skills add crewaiinc/skills
-```
-
-If PowerShell blocks script execution, the current-user policy can be set with
-the following command. `RemoteSigned` is not unrestricted permission; it allows
-local scripts and requires downloaded scripts to be signed:
-
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
-
-Review the installed third-party skill files before using them, then reload VS
-Code so the skill can be discovered.
-
-## Run with Docker Compose
-
-```bash
-docker compose up --build
-```
-
-The API is available at `http://localhost:8000`; the httpbin webhook receiver
-is available at `http://localhost:8080`. The API posts notifications to
-httpbin's `/anything/notify` endpoint over the Compose network. httpbin echoes
-the received request; it does not provide a persistent request history.
-
-To test the running stack from WSL or another Bash environment:
-
-```bash
-./scripts/smoke_test.sh
-```
-
-To build with the Poetry Dockerfile, first install Poetry and generate its lock
-file with `poetry lock`, then use:
-
-```bash
-docker compose build --no-cache ml-api
-```
-
-Change `docker-compose.yml` from `Dockerfile.fastapi` to `Dockerfile.poetry`
-when you want Compose to use the Poetry build.
+Git Credential Manager may open a browser for GitHub sign-in during the push.
+Authenticate in the browser; GitHub account passwords are not used directly for
+HTTPS Git operations. Never paste passwords, access tokens, or other secrets
+into chat or commit them to the repository.
