@@ -58,7 +58,7 @@ Use it as a quick reference while building.
               ▼                                   ▼
       ┌───────────────┐                 ┌─────────────────┐
       │ ml-api        │──POST /predict──▶│ webhook-receiver│
-      │ :8000         │──WEBHOOK_URL────▶│ :8080/notify    │
+      │ :8000         │──POST /anything/notify──▶│ :80     │
       └───────────────┘                 └─────────────────┘
               │
               ▼
@@ -128,7 +128,7 @@ labeled arrow**.
          │
          │ defines services, ports, env vars
          ▼
-┌─────────────────┐      WEBHOOK_URL=http://webhook-receiver:8080/notify
+┌─────────────────┐      WEBHOOK_URL=http://webhook-receiver/anything/notify
 │ docker-compose  │─────────────────────────────────────────────┐
 │ .yml            │                                             │
 └────────┬────────┘                                             │
@@ -182,7 +182,7 @@ graph TD
     H --> I
 
     I --> J[ml-api container :8000]
-    I --> K[webhook-receiver container :8080]
+    I --> K[webhook-receiver container :80]
 
     J -->|POST /notify| K
     J --> L[tests/test_api.py]
@@ -201,6 +201,7 @@ graph TD
     - [Installing Node.js and npm on Windows](#installing-nodejs-and-npm-on-windows)
     - [Adding the CrewAI skill in VS Code](#adding-the-crewai-skill-in-vs-code)
    - [Installing Docker Desktop on Windows](#installing-docker-desktop-on-windows)
+     - [Why use WSL 2 for this project?](#why-use-wsl-2-for-this-project)
 3. [Final Project Structure](#3-final-project-structure)
    - [3.1 — What all these files do together](#31--what-all-these-files-do-together)
 4. [Setup: Create the Project Skeleton](#4-setup-create-the-project-skeleton)
@@ -514,18 +515,12 @@ skills as executable instructions and review them before use.
 
 ### Installing Docker Desktop on Windows
 
-Docker Desktop is the easiest way to get Docker Engine and Docker Compose on
-Windows. It also includes the Windows Subsystem for Linux 2 (WSL 2) backend,
-which gives you a Linux kernel inside Windows.
+Docker Desktop provides Docker Engine and Docker Compose on Windows. For this
+Linux-container project, Docker recommends the WSL 2 backend for most users.
+Check Docker's current [Windows installation requirements and instructions](https://docs.docker.com/desktop/setup/install/windows-install/)
+before installing, because supported Windows editions and versions can change.
 
-**Step 1 — Check system requirements**
-
-- Windows 10 version 19041+ or Windows 11
-- 64-bit processor with Second Level Address Translation (SLAT)
-- 4 GB RAM minimum (8 GB recommended)
-- BIOS-level hardware virtualization enabled (Intel VT-x or AMD-V)
-
-**Step 2 — Enable WSL 2 (Windows 10/11)**
+**Step 1 — Install or update WSL 2**
 
 Open PowerShell as Administrator and run:
 
@@ -533,55 +528,90 @@ Open PowerShell as Administrator and run:
 wsl --install
 ```
 
-This installs WSL 2 and the default Ubuntu distribution. Restart when prompted.
+Restart Windows if prompted. If WSL is already installed, update it:
 
-If WSL is already installed, make sure version 2 is the default:
+```powershell
+wsl --update
+wsl --version
+```
+
+Docker Desktop currently requires WSL version 2.1.5 or later for its WSL 2
+backend. If `wsl --version` does not show version information, update WSL using
+Microsoft's current [WSL installation instructions](https://learn.microsoft.com/windows/wsl/install).
+You can make WSL 2 the default for newly installed Linux distributions with:
 
 ```powershell
 wsl --set-default-version 2
 ```
 
-**Step 3 — Download Docker Desktop**
+**Step 2 — Install Docker Desktop**
 
-1. Download Docker Desktop for Windows from: <https://www.docker.com/products/docker-desktop>
-2. Run the installer (`.exe` file).
-3. During installation, keep **"Use WSL 2 instead of Hyper-V"** checked (recommended).
-4. Restart your PC when prompted.
-5. Launch **Docker Desktop** from the Start menu and wait for the whale icon in the system tray to stop animating. This indicates Docker is ready.
+1. Download Docker Desktop from the official
+   [Docker Desktop for Windows page](https://docs.docker.com/desktop/setup/install/windows-install/).
+2. Run `Docker Desktop Installer.exe`. The per-user installation is recommended
+   for most users and normally does not require administrator privileges.
+3. On the installer configuration page, select **Use WSL 2 instead of
+   Hyper-V**. WSL 2 is the default backend and is suitable for this project.
+4. Finish the installation, launch Docker Desktop from the Start menu, and
+   accept its service agreement when prompted. Docker Desktop does not
+   necessarily start automatically after installation.
 
-**Step 4 — Verify the installation**
+**Step 3 — Enable your Linux distribution in Docker Desktop**
 
-Open PowerShell or a WSL terminal and run:
+In Docker Desktop, open **Settings > Resources > WSL Integration** and enable
+the distribution you plan to use, such as Ubuntu. Select **Apply & restart**.
+This makes Docker Desktop's Docker CLI available from that WSL distribution.
+The setting may be unavailable until the WSL 2 engine is selected under
+**Settings > General**.
+
+**Step 4 — Verify Docker Desktop and WSL**
+
+In PowerShell, check that Docker and Compose are installed and the engine is
+running:
+
+```powershell
+docker --version
+docker compose version
+docker info
+```
+
+Then open the integrated Ubuntu distribution and run:
 
 ```bash
 docker --version
 docker compose version
-```
-
-You should see versions such as:
-
-```text
-Docker version 27.x.x, build xxxxxxx
-Docker Compose version v2.x.x
-```
-
-**Step 5 — Start Docker Desktop**
-
-Open the Start menu and launch **Docker Desktop**. Wait until the whale icon in
-the system tray is no longer animated. This means the Docker Engine is running
-and the app is ready for use.
-
-**Step 6 — Test with a hello-world container**
-
-```bash
 docker run hello-world
 ```
 
-If you see a welcome message, Docker is ready.
+The `hello-world` image should download and print a success message. If Docker
+commands work in PowerShell but not inside Ubuntu, recheck the WSL Integration
+setting and restart the distribution with `wsl --shutdown`, then reopen Ubuntu.
 
-> **Tip for Windows users:** Run all commands in this guide inside a WSL 2
-> terminal (Ubuntu) or PowerShell. WSL 2 gives you the same Linux environment
-> used by the containers and avoids line-ending issues with shell scripts.
+#### Why use WSL 2 for this project?
+
+- **Linux compatibility:** The app's containers use Linux images. WSL 2 runs a
+  real Linux kernel, so container behavior is closer to common Linux servers
+  and CI environments.
+- **Linux development tools:** Ubuntu provides Bash and standard Linux command
+  line tools, which are useful for the project's `.sh` smoke test and Docker
+  workflows.
+- **Integrated workflow:** Docker Desktop can expose its engine to the WSL
+  distribution, letting you run `docker` and `docker compose` from the same
+  Linux terminal used for development.
+- **Resource efficiency:** WSL 2 uses a lightweight managed virtual machine
+  rather than requiring a separately managed full Linux desktop VM.
+
+For best file-system performance when doing substantial work inside Ubuntu,
+keep the project in the WSL Linux filesystem (for example, under `~/projects`)
+and open it through VS Code's WSL support. Accessing Linux workloads through
+`/mnt/c/` is convenient, but cross-filesystem file operations can be slower.
+The project can still be edited from Windows; use one environment consistently
+for Python commands and shell scripts to avoid path and line-ending confusion.
+
+> **For this guide:** PowerShell is fine for Windows setup commands. Use Ubuntu
+> in WSL for Bash scripts such as `scripts/smoke_test.sh`; run Docker commands
+> from either PowerShell or an integrated WSL distribution after Docker Desktop
+> is running and WSL integration is enabled.
 
 ---
 
@@ -810,7 +840,7 @@ class Settings:
     # --- Webhook configuration ---
     # If empty, webhook notifications are silently disabled.
     # In docker-compose.yml we set this to:
-    #     http://webhook-receiver:8080/notify
+    #     http://webhook-receiver/anything/notify
     webhook_url: str = ""
 
     # How long (seconds) to wait for the webhook target before giving up.
@@ -1069,64 +1099,12 @@ def send_webhook(url: str, payload: dict, timeout: int = 5) -> bool:
     # This keeps the app usable even when webhooks are not set up.
     if not url:
         logger.debug("No webhook URL configured; skipping notification.")
-        return False
-
-    try:
-        # `json=payload` automatically serializes the dict and sets
-        # Content-Type: application/json.
-        response = requests.post(url, json=payload, timeout=timeout)
-        response.raise_for_status()  # raises for 4xx/5xx
-        logger.info("Webhook sent: %s | payload=%s", url, payload)
-        return True
-    except requests.RequestException as exc:
         # Log but do NOT raise. The caller already has the prediction
-        # result and should return it to the client regardless.
-        logger.error("Webhook failed: %s | error=%s", url, exc)
-        return False
-```
-
-**Teaching note:** Contrast with a normal API call inside `main.py` —
-that one *should* raise so the client sees the error. Webhooks are
-best-effort by design.
-
----
-
-### 5.6 — `app/main.py`
-
-**What this does:** The FastAPI application. Defines the routes and
-orchestrates model inference plus webhook notification.
-
-**Create `app/main.py`:**
-
-```python
-# app/main.py
-"""
-FastAPI application entry point.
-
-Run locally:
-    uvicorn app.main:app --reload
-
 Run inside Docker:
-    uvicorn app.main:app --host 0.0.0.0 --port 8000
-"""
-
-from __future__ import annotations
 
 import logging
-
-from fastapi import FastAPI, status
-from fastapi.responses import JSONResponse
-
 from app.config import settings
-from app.model import HousePriceModel
-from app.schemas import (
-    HealthResponse,
-    PredictRequest,
     PredictResponse,
-    WebhookPayload,
-)
-from app.webhook import send_webhook
-
 # ---------------------------------------------------------------------------
 # Logging setup — must run before any logger is used.
 # ---------------------------------------------------------------------------
@@ -1295,17 +1273,16 @@ for 3 rooms and the result was 300.0.”*
 | Timeout | Can be long | Keep short (seconds) |
 | Response used? | Yes | Usually ignored |
 
-#### What does `WEBHOOK_URL=http://webhook-receiver:8080/notify` mean?
+#### What does `WEBHOOK_URL=http://webhook-receiver/anything/notify` mean?
 
 This environment variable tells the API where to send webhook notifications.
 Let’s break it down:
 
 ```text
-http://webhook-receiver:8080/notify
-│      │                  │   │
-│      │                  │   └── Path on the receiver that accepts POSTs
-│      │                  └────── Port the receiver listens on
-│      └───────────────────────── Hostname of the receiver service
+http://webhook-receiver/anything/notify
+│      │               │
+│      │               └── httpbin endpoint that echoes POST requests
+│      └────────────────── Compose service hostname (default HTTP port 80)
 └──────────────────────────────── Protocol (plain HTTP inside the private Compose network)
 ```
 
@@ -1313,13 +1290,13 @@ http://webhook-receiver:8080/notify
   Inside a Docker Compose network, service names become DNS hostnames. The
   `ml-api` container does not need to know an IP address; it just resolves
   `webhook-receiver` to the correct container.
-- **`8080`** is the port exposed by the `webhook-receiver` service. In
-  `docker-compose.yml` we map host port `8080` to container port `80`, but
-  container-to-container traffic uses the **container port** (`8080` here
-  because httpbin happens to listen on `80` and we address it via the service
-  port mapping in the Compose file).
-- **`/notify`** is the path the receiver accepts POST requests on. httpbin
-  will echo any path, so `/notify` is just a meaningful name we chose.
+- httpbin listens on container port `80`, the default HTTP port, so no port
+  needs to be written in this container-to-container URL.
+- `docker-compose.yml` publishes `8080:80`: host port `8080` forwards to
+  container port `80`. Use `http://localhost:8080` from Windows, but use
+  `http://webhook-receiver/anything/notify` from the `ml-api` container.
+- **`/anything/notify`** is an httpbin endpoint that accepts a POST and echoes
+  request details. The `/notify` suffix is included as a descriptive path.
 
 #### What exactly happens when you call `/predict`
 
@@ -1345,7 +1322,7 @@ Here is the full flow, step by step:
         │
         ▼
 5. send_webhook() reads WEBHOOK_URL
-   and POSTs the payload to http://webhook-receiver:8080/notify
+  and POSTs the payload to http://webhook-receiver/anything/notify
         │
         ▼
 6. webhook-receiver (httpbin) receives the POST and echoes it
@@ -1382,10 +1359,11 @@ fails**. The webhook is fire-and-forget.
    http://localhost:8080
    ```
 
-4. Click **History** and look for a POST to `/notify`. Click it to see the
-   JSON body.
+4. The standard `kennethreitz/httpbin` image does not retain a request history
+  or provide a **History** page. The API logs successful delivery, but if you
+  need to inspect received payloads, use the Python receiver option below.
 
-5. Alternatively, use curl to inspect the last request:
+5. You can also make a direct request to see how httpbin echoes request data:
 
    ```bash
    curl -s http://localhost:8080/get
@@ -1444,7 +1422,7 @@ After running the smoke test, open your browser to:
 http://localhost:8080
 ```
 
-Click **History** to see the POST to `/notify`. The body will look like:
+The webhook payload sent by the API has this shape:
 
 ```json
 {
@@ -1455,12 +1433,14 @@ Click **History** to see the POST to `/notify`. The body will look like:
 }
 ```
 
-You can also query httpbin programmatically:
+You can check that httpbin is reachable from Windows with:
 
 ```bash
-# List recent requests received by httpbin
 curl -s http://localhost:8080/get
 ```
+
+The `/get` endpoint returns details about that GET request; it does not show
+previous webhook POSTs.
 
 #### Security considerations
 
@@ -1475,37 +1455,11 @@ Production webhooks should:
 Example signed header (conceptual):
 
 ```python
-import hmac
-import hashlib
 
-secret = b"my-shared-secret"
-body = b'{"event":"prediction_completed","input_rooms":3}'
-signature = hmac.new(secret, body, hashlib.sha256).hexdigest()
-# Send header: X-Webhook-Signature: sha256=<signature>
-```
-
-#### Common webhook pitfalls
-
-- **Blocking the main request.** Always send webhooks after returning the
-  primary result, or use a background task/queue.
 - **No timeout.** A slow webhook can hang your service.
-- **Leaking secrets in URLs.** Prefer headers for authentication tokens.
-- **Ignoring retries.** Receivers may be down temporarily; design for at-least-once delivery.
-
----
-
-## 6. Tests
 
 ### 6.1 — `tests/__init__.py`
-
-**Create `tests/__init__.py`:**
-
-```python
 # tests/__init__.py
-# Marks `tests` as a package so pytest discovers it reliably.
-```
-
-### 6.2 — `tests/test_api.py`
 
 **Create `tests/test_api.py`:**
 
@@ -1975,7 +1929,7 @@ services:
     # environment: injects key/value pairs into the container as
     # OS-level environment variables. Inside the container they behave
     # exactly like variables you would export in a shell:
-    #     export WEBHOOK_URL=http://webhook-receiver:8080/notify
+    #     export WEBHOOK_URL=http://webhook-receiver/anything/notify
     #     export LOG_LEVEL=INFO
     #     export APP_VERSION=0.1.0
     #
@@ -1992,7 +1946,7 @@ services:
       # The value uses the service name `webhook-receiver` as a DNS host.
       # Docker Compose creates a private network where each service name
       # resolves to the other container's IP, so we never hard-code IPs.
-      - WEBHOOK_URL=http://webhook-receiver:8080/notify
+      - WEBHOOK_URL=http://webhook-receiver/anything/notify
 
       # LOG_LEVEL -> read in app/config.py by:
       #     log_level = os.getenv("LOG_LEVEL", "INFO")
@@ -2018,8 +1972,8 @@ services:
     restart: unless-stopped
 
   # ----------------------------------------------------------
-  # Webhook receiver — httpbin echoes any request it receives.
-  # Open http://localhost:8080 and inspect "History" to see POSTs.
+  # Webhook receiver — httpbin responds with details about each request.
+  # Use the ml-api logs or the optional Python receiver to inspect delivery.
   # ----------------------------------------------------------
   webhook-receiver:
     image: kennethreitz/httpbin
@@ -2031,16 +1985,98 @@ services:
     restart: unless-stopped
 ```
 
-**Teaching note:** Point out the DNS trick —
-`http://webhook-receiver:8080/notify` uses the **service name** as a
-hostname inside the Compose network. That's why container-to-container
-communication works without hard-coded IPs.
+**Teaching note:** Point out the DNS and port mapping —
+`http://webhook-receiver/anything/notify` uses the **service name** as a
+hostname inside the Compose network and httpbin's internal port `80`. The
+`8080:80` mapping is for requests from the Windows host, such as a browser at
+`http://localhost:8080`; containers communicate directly over the internal
+port and do not use the host-published port.
 
 ---
 
 ## 10. Utility Scripts
 
-### 10.1 — `scripts/smoke_test.sh`
+The Docker workflow includes a Windows preflight script and a Bash end-to-end
+smoke test. The preflight checks that Docker Desktop's CLI, Compose plugin, and
+engine are available before you build or start the stack.
+
+### 10.1 — `scripts/check_docker.ps1`
+
+Run this from PowerShell at the project root:
+
+```powershell
+.\scripts\check_docker.ps1
+```
+
+It reports the Docker CLI and Compose versions, verifies that the engine
+responds to `docker info`, and displays WSL version and distribution details
+when WSL is installed. It exits with a non-zero status if Docker or Compose is
+missing or the engine is not running. Start Docker Desktop and try again.
+
+**Create `scripts/check_docker.ps1`:**
+
+```powershell
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+$docker = Get-Command docker -ErrorAction SilentlyContinue
+if ($null -eq $docker) {
+  Write-Host "Docker CLI was not found on PATH." -ForegroundColor Red
+  Write-Host "Install or repair Docker Desktop, then open a new PowerShell window."
+  exit 1
+}
+
+try {
+  $dockerVersion = & docker --version
+  if ($LASTEXITCODE -ne 0) {
+    throw "docker --version failed."
+  }
+  Write-Host "Docker CLI: $dockerVersion" -ForegroundColor Green
+
+  $composeVersion = & docker compose version
+  if ($LASTEXITCODE -ne 0) {
+    throw "Docker Compose v2 is unavailable. Update Docker Desktop."
+  }
+  Write-Host "Docker Compose: $composeVersion" -ForegroundColor Green
+
+  $serverVersion = & docker info --format "{{.ServerVersion}}" 2>$null
+  if ($LASTEXITCODE -ne 0) {
+    throw "Docker Engine is not reachable. Start Docker Desktop and wait for it to finish starting."
+  }
+  Write-Host "Docker Engine: $serverVersion" -ForegroundColor Green
+}
+catch {
+  Write-Host $_.Exception.Message -ForegroundColor Red
+  exit 1
+}
+
+$wsl = Get-Command wsl -ErrorAction SilentlyContinue
+if ($null -eq $wsl) {
+  Write-Host "WSL command was not found. Docker may still work with another supported backend." -ForegroundColor Yellow
+  exit 0
+}
+
+$wslVersion = & wsl --version 2>&1
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "WSL version details:" -ForegroundColor Cyan
+  $wslVersion | ForEach-Object { Write-Host "  $_" }
+}
+else {
+  Write-Host "WSL version details were unavailable. Run 'wsl --update', then check Docker Desktop's WSL integration." -ForegroundColor Yellow
+}
+
+$distributions = & wsl --list --verbose 2>&1
+if ($LASTEXITCODE -eq 0) {
+  Write-Host "WSL distributions:" -ForegroundColor Cyan
+  $distributions | ForEach-Object { Write-Host "  $_" }
+}
+
+Write-Host "Docker Desktop, Docker Compose, and the Docker Engine are available." -ForegroundColor Green
+```
+
+### 10.2 — `scripts/smoke_test.sh`
 
 A **smoke test** is a quick end-to-end check that the whole deployed system
 is alive. It sends real HTTP requests to the running containers to verify
@@ -2081,9 +2117,9 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" \
      -H "Content-Type: application/json" \
      -d '{"rooms": -1}'
 
-echo "▶ 5. Webhook history hint"
+echo "▶ 5. Webhook receiver reachability"
 curl -sf "${WEBHOOK_BASE}/get" >/dev/null && \
-  echo "   Open ${WEBHOOK_BASE} in your browser to inspect the POST body."
+  echo "   Receiver is reachable. Check ml-api logs for webhook delivery."
 
 echo
 echo "✅ Smoke test completed."
@@ -2095,7 +2131,7 @@ Make it executable:
 chmod +x scripts/smoke_test.sh
 ```
 
-### 10.2 — `scripts/webhook_receiver.py` (optional local receiver)
+### 10.3 — `scripts/webhook_receiver.py` (optional local receiver)
 
 If you prefer a Python receiver instead of httpbin, use this script. It
 prints every webhook payload to the terminal so students can see delivery
@@ -2533,7 +2569,7 @@ A suggested 90-minute session:
 | 25–40 min | Docker basics | Build `Dockerfile.fastapi`, explain layers |
 | 40–55 min | Poetry & multi-stage | Build `Dockerfile.poetry`, compare image sizes |
 | 55–70 min | Docker Compose | Start the stack, explain DNS/service names |
-| 70–80 min | Webhooks | Trigger `/predict`, inspect httpbin history |
+| 70–80 min | Webhooks | Trigger `/predict`, inspect delivery logs or run the local receiver |
 | 80–90 min | Tests & smoke test | Run `pytest` and `scripts/smoke_test.sh` |
 
 **Demo tips:**
@@ -2596,14 +2632,15 @@ ports:
 You are running `uvicorn` from the wrong directory. Make sure your terminal
 is in the project root (`mlops-demo/`), not inside `app/`.
 
-### Webhook not appearing in httpbin history
+### Webhook delivery is not working
 
 1. Check that `WEBHOOK_URL` is set in `docker-compose.yml`.
 2. Check logs: `docker compose logs -f ml-api`.
-3. Verify the receiver is reachable from the API container:
-   ```bash
-   docker compose exec ml-api curl http://webhook-receiver:8080/get
-   ```
+3. The standard httpbin container does not retain requests in a history. Verify
+  that the receiver is reachable from the API container:
+  ```bash
+  docker compose exec ml-api python -c "import urllib.request; print(urllib.request.urlopen('http://webhook-receiver/get').status)"
+  ```
 
 ### `pytest` fails with `ImportError`
 

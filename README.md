@@ -42,7 +42,7 @@ durable queue and does not retry delivery after a process failure.
 ```text
 app/                    FastAPI app, configuration, model, schemas, webhook
 tests/                  In-process API tests
-scripts/                End-to-end smoke test and optional Flask receiver
+scripts/                Docker preflight, smoke test, optional Flask receiver
 readme/                 Full teaching walkthrough
 requirements.txt        Pinned pip dependencies
 pyproject.toml           Poetry project and dependency configuration
@@ -87,13 +87,50 @@ git config --global user.email "you@example.com"
 Check the values with `git config --global --list`.
 
 Install Python 3.11 or newer from the official Python distribution or use the
-Python launcher if it is already installed. For Docker workflows, install
-[Docker Desktop](https://www.docker.com/products/docker-desktop/) and enable its
-WSL 2 backend if available. Verify Docker from PowerShell:
+Python launcher if it is already installed.
+
+### Docker Desktop with WSL 2
+
+For this Linux-container project, Docker Desktop's WSL 2 backend is recommended
+for most Windows users. Review Docker's current
+[Windows installation requirements](https://docs.docker.com/desktop/setup/install/windows-install/)
+before installing.
+
+In an Administrator PowerShell window, install or update WSL 2, then restart
+Windows if prompted:
+
+```powershell
+wsl --install
+wsl --update
+wsl --version
+```
+
+Set WSL 2 as the default version for newly installed Linux distributions:
+
+```powershell
+wsl --set-default-version 2
+```
+
+Docker Desktop currently requires WSL 2.1.5 or later for the WSL backend. If
+needed, follow Microsoft's [WSL installation guide](https://learn.microsoft.com/windows/wsl/install).
+Install Docker Desktop from the linked Docker page and select **Use WSL 2
+instead of Hyper-V** in the installer. After Docker Desktop starts, open
+**Settings > Resources > WSL Integration**, enable the Ubuntu distribution you
+use, and select **Apply & restart**.
+
+WSL 2 runs a Linux kernel and provides Bash/Linux tools, which makes the
+container workflow more like Linux-based servers and CI. It is also the
+recommended place to run this project's Bash smoke test. For intensive file
+work inside WSL, keeping the project under the Linux home directory (such as
+`~/projects`) can avoid slower cross-filesystem operations through `/mnt/c/`.
+
+Verify the Docker engine and Compose from PowerShell or the integrated WSL
+terminal:
 
 ```powershell
 docker --version
 docker compose version
+docker run hello-world
 ```
 
 The optional `uv` Python package manager can be installed in PowerShell with:
@@ -153,6 +190,17 @@ HTTP `422` from FastAPI validation.
 
 ## Run with Docker Compose
 
+From the project root, check that Docker Desktop, Compose, and the engine are
+available:
+
+```powershell
+.\scripts\check_docker.ps1
+```
+
+The check exits with an error if Docker is missing from `PATH`, Compose v2 is
+unavailable, or the Docker Engine is not running. Start Docker Desktop and run
+the check again if the engine cannot be reached.
+
 Build and start the stack from the project root:
 
 ```powershell
@@ -173,8 +221,10 @@ docker compose logs -f ml-api
 docker compose down
 ```
 
-The end-to-end `scripts/smoke_test.sh` is a Bash script. Run it from WSL or a
-Bash environment after starting the Compose stack:
+The end-to-end `scripts/smoke_test.sh` is a Bash script. Run it from WSL or Git
+Bash, from the project root, after starting the Compose stack. It checks the
+API routes, response fields, validation status, receiver reachability, and a
+new webhook success entry in the API container logs:
 
 ```bash
 ./scripts/smoke_test.sh
