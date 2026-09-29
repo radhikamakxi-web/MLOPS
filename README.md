@@ -13,6 +13,7 @@ The full teaching walkthrough is in
 - [What the project does](#what-the-project-does)
 - [Project files](#project-files)
 - [Prerequisites](#prerequisites)
+- [Step-by-step quick start](#step-by-step-quick-start)
 - [Run and test locally](#run-and-test-locally)
 - [Use the API](#use-the-api)
 - [Run with Docker Compose](#run-with-docker-compose)
@@ -144,6 +145,67 @@ Open a new PowerShell window, then verify the installation:
 ```powershell
 uv --version
 ```
+
+## Step-by-step quick start
+
+This is the fastest path from a fresh clone to a working prediction. The
+model trains automatically when the FastAPI app starts.
+
+### 1. Create and activate a virtual environment
+
+From the project root:
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 2. Install the dependencies
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### 3. Run the tests
+
+```powershell
+pytest -q
+```
+
+### 4. Start the FastAPI server
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+The server is now running at `http://localhost:8000`.
+
+### 5. Make a prediction
+
+In a new terminal (with the same virtual environment activated):
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+Invoke-RestMethod -Uri http://localhost:8000/predict `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body '{"rooms": 3}'
+```
+
+Expected response:
+
+```json
+{
+    "rooms": 3,
+    "predicted_price": 300.0
+}
+```
+
+### 6. Stop the server
+
+Press `Ctrl+C` in the terminal running uvicorn.
+
+---
 
 ## Run and test locally
 

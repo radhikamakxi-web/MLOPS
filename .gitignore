@@ -1,14 +1,31 @@
+# Files and directories Git should ignore.
+#
+# These are generated or local-only artifacts that should not be committed to
+# version control. Keeping them out of the repository keeps it small and avoids
+# leaking secrets or environment-specific paths.
+
+# Python virtual environments.
 .venv/
 venv/
 env/
+
+# Compiled Python cache and bytecode.
 __pycache__/
 *.py[cod]
+
+# Environment files often contain secrets such as API keys or database URLs.
 .env
 .env.*
+
+# Test and coverage artifacts.
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Editor and IDE configuration directories.
 .vscode/
 .idea/
+
+# Operating-system generated files.
 .DS_Store
 Thumbs.db

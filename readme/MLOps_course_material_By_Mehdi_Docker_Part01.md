@@ -2271,29 +2271,79 @@ Thumbs.db
 
 ### 12.1 — Local development (no Docker)
 
+Follow these numbered steps to train the model, start the FastAPI service,
+and make a prediction from a fresh clone.
+
+#### Step 1 — Create a virtual environment
+
+From the project root:
+
 ```bash
-# 1. Create a virtual environment
 python -m venv venv
+```
 
-# 2. Activate it
-# Windows (PowerShell):
+#### Step 2 — Activate the virtual environment
+
+Windows (PowerShell):
+
+```powershell
 venv\Scripts\Activate.ps1
-# Windows (cmd):
+```
+
+Windows (cmd):
+
+```cmd
 venv\Scripts\activate.bat
-# macOS/Linux:
+```
+
+macOS/Linux:
+
+```bash
 source venv/bin/activate
+```
 
-# 3. Install dependencies
+#### Step 3 — Install the dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-# 4. Run tests
+#### Step 4 — Run the tests
+
+```bash
 pytest
+```
 
-# 5. Start the API
+#### Step 5 — Start the FastAPI server
+
+The model trains automatically when the app starts.
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-Open <http://localhost:8000/docs> to explore the interactive API docs.
+The server is available at `http://localhost:8000`. Open
+<http://localhost:8000/docs> to explore the interactive API docs.
+
+#### Step 6 — Make a prediction
+
+In a second terminal (with the same virtual environment activated):
+
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"rooms": 3}'
+```
+
+Expected response:
+
+```json
+{"rooms": 3, "predicted_price": 300.0}
+```
+
+#### Step 7 — Stop the server
+
+Press `Ctrl+C` in the terminal running uvicorn.
 
 ### 12.2 — Build and run with Docker (pip version)
 
