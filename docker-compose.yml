@@ -3,7 +3,7 @@
 # This file defines two services:
 #   1. ml-api            - the FastAPI house-price prediction service.
 #   2. webhook-receiver  - httpbin, used to echo webhook notifications.
-#
+# Each service normally becomes a separate Docker container.
 # Run with: docker compose up --build
 
 services:
@@ -14,8 +14,12 @@ services:
       context: .
       dockerfile: Dockerfile.fastapi
     # Tag the built image so it is easy to identify with `docker images`.
+    # The tag often represents the version or environment.
+
     image: ml-api:dev
     # Map host port 8000 to container port 8000. Visit http://localhost:8000.
+    # HOST_PORT:CONTAINER_PORT
+
     ports:
       - "8000:8000"
     # Environment variables passed into the container. The API reads these
@@ -33,6 +37,10 @@ services:
       webhook-receiver:
         condition: service_started
     # Restart the container automatically unless it was explicitly stopped.
+    # Docker Compose supports these depends_on conditions:
+          # service_started — the dependency container has started.
+          # service_healthy — the dependency’s health check reports healthy.
+          # service_completed_successfully — the dependency exits successfully.
     restart: unless-stopped
 
   webhook-receiver:

@@ -3,6 +3,29 @@
 These tests use FastAPI's TestClient to exercise the endpoints directly in
 memory. They run quickly and are ideal for CI because they do not need a
 running server or container.
+
+Tests included The file checks that:
+
+GET /health returns HTTP 200
+
+/health returns the expected version
+
+GET /model/info reports a LinearRegression model
+
+POST /predict with 3 rooms returns approximately 300
+
+Zero rooms are rejected with HTTP 422
+
+Negative rooms are rejected
+
+Missing rooms is rejected
+
+Text such as "three" is rejected
+
+A webhook is scheduled after a prediction when WEBHOOK_URL is configured
+
+
+
 """
 
 from unittest.mock import Mock

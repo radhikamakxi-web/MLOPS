@@ -1,3 +1,13 @@
+
+# The Dockerfile usually describes steps such as:
+        # Select a Python base image
+        # Install dependencies
+        # Copy the application code
+        # Expose a port
+        # Start the FastAPI server
+
+
+
 # Simple pip-based image for the API.
 #
 # This Dockerfile builds a single-stage image: it installs dependencies and
@@ -6,6 +16,18 @@
 # because it does not use a multi-stage build.
 
 # Base image: official Python 3.11 slim (Debian-based, smaller than full).
+# docker pull python:3.11-slim
+# The library namespace is implicit for Docker Official Images, so these are equivalent:
+    # docker pull python:3.11-slim
+    # docker pull docker.io/library/python:3.11-slim
+# Docker interprets the short name as:
+    # docker.io/library/python:3.11-slim
+    # Breaking it down:
+        # Registry:   docker.io
+        # Namespace:  library
+        # Repository: python
+        # Tag:        3.11-slim
+
 FROM python:3.11-slim
 
 # Metadata labels are optional but help identify the image later.

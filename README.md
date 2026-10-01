@@ -155,7 +155,7 @@ model trains automatically when the FastAPI app starts.
 
 From the project root:
 
-```Conda env 
+``````Anaconda Prompt (Conda env)
 cd C:\....\mlops_project01_revised
 
 conda create -n mlops python=3.11 -y
@@ -166,20 +166,64 @@ conda deactivate
 
 ### 2. Install the dependencies
 
-```powershell
+```Anaconda Prompt
 python -m pip install -r requirements.txt
 ```
 
 ### 3. Run the tests
 
-```powershell
+```Anaconda Prompt
 pytest -q
 pytest --collect-only
+
 ```
+
+also 
+```Anaconda Prompt
+python -m pytest -q
+
+```
+
+#### How it works : 
+Pytest searches the current directory and subdirectories for test files with names such as: test_api.py . 
+
+#### Note : 
+pytest -q
+================================================= test session starts =================================================
+platform win32 -- Python 3.11.16, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Docs\Mehdi\Teaching\MLOps\python_code\mlops_project01_revised
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1
+collected 8 items
+
+tests\test_api.py ........                                                                                       [100%]
+
+================================================== warnings summary ===================================================
+..\..\..\..\..\..\Users\zadeh\.conda\envs\mlops\Lib\site-packages\starlette\testclient.py:40
+  C:\Users\zadeh\.conda\envs\mlops\Lib\site-packages\starlette\testclient.py:40: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+
+..\..\..\..\..\..\Users\zadeh\.conda\envs\mlops\Lib\site-packages\pydantic\_internal\_fields.py:132
+  C:\Users\zadeh\.conda\envs\mlops\Lib\site-packages\pydantic\_internal\_fields.py:132: UserWarning: Field "model_version" in PredictResponse has conflict with protected namespace "model_".
+
+  You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+    warnings.warn(
+
+..\..\..\..\..\..\Users\zadeh\.conda\envs\mlops\Lib\site-packages\pydantic\_internal\_fields.py:132
+  C:\Users\zadeh\.conda\envs\mlops\Lib\site-packages\pydantic\_internal\_fields.py:132: UserWarning: Field "model_version" in WebhookPayload has conflict with protected namespace "model_".
+
+  You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================================ 8 passed, 3 warnings in 3.71s ============================================
+
+
 
 ### 4. Start the FastAPI server
 
-```powershell
+```Anaconda Prompt
 uvicorn app.main:app --reload
 ```
 
@@ -197,6 +241,17 @@ Invoke-RestMethod -Uri http://localhost:8000/predict `
     -Method Post `
     -ContentType "application/json" `
     -Body '{"rooms": 3}'
+```
+
+``` Anaconda Prompt (Recommended)
+curl -X POST http://localhost:8000/predict ^
+  -H "Content-Type: application/json" ^
+  -d "{\"rooms\": 3}"
+    -Body '{"rooms": 3}'
+
+
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d "{\"rooms\": 3}"
+
 ```
 
 Expected response:
@@ -257,24 +312,72 @@ Invoke-RestMethod -Uri http://localhost:8000/predict `
 The `rooms` value must be greater than zero. Invalid or missing values receive
 HTTP `422` from FastAPI validation.
 
-## Run with Docker Compose
+## Run with Docker Compose 
 
 From the project root, check that Docker Desktop, Compose, and the engine are
 available:
 
 ```powershell
-.\scripts\check_docker.ps1
+cd C:\....\mlops_project01_revised
+
+Get-ChildItem .\scripts\
+
+
+
+Directory: C:\Docs\Mehdi\Teaching\MLOps\python_code\mlops_project01_revised\scripts
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2026-10-01   1:11 PM           2852 check_docker.ps1
+-a----        2026-10-01   1:11 PM           2980 smoke_test.sh
+-a----        2026-10-01   1:11 PM           1140 webhook_receiver.py
+
+
+
+
+
 ```
+
+If PowerShell reports that script execution is disabled, allow scripts for only your user account:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
 
 The check exits with an error if Docker is missing from `PATH`, Compose v2 is
 unavailable, or the Docker Engine is not running. Start Docker Desktop and run
 the check again if the engine cannot be reached.
+
+```powershell
+docker --version
+docker info 
+```
 
 Build and start the stack from the project root:
 
 ```powershell
 docker compose up --build
 ```
+It is equal to
+
+```powershell
+docker build -f Dockerfile.fastapi -t ml-api:dev .
+docker run -p 8000:8000 ...
+
+docker pull kennethreitz/httpbin
+docker run -p 8080:80 kennethreitz/httpbin
+
+```
+Note : 
+https://hub.docker.com/r/kennethreitz/httpbin
+
+
+kennethreitz/httpbin is a small HTTP request-and-response testing service. It does not provide a business API or store application data. Instead, it gives predictable endpoints for testing HTTP clients, proxies, webhooks, headers, authentication, delays, and error handling.
+
+
+
 
 The API is exposed at `http://localhost:8000`; httpbin is exposed at
 `http://localhost:8080`. Within the Compose network, the API calls
