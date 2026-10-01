@@ -1,0 +1,24 @@
+# Runtime and test dependencies for the pip workflow.
+#
+# These are exact pinned versions (==). Pinning makes installs reproducible:
+# every environment gets the same package versions. The downside is that
+# transitive dependencies are not pinned here, so they can still drift.
+# Dockerfile.poetry solves that with poetry.lock.
+
+# Web framework and ASGI server.
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Data validation library used by FastAPI for request/response models.
+pydantic==2.9.2
+
+# Machine-learning stack.
+scikit-learn==1.5.2
+numpy==2.1.1
+
+# HTTP client used by the webhook sender.
+requests==2.32.3
+
+# Test framework and the HTTP client that TestClient uses under the hood.
+pytest==8.3.3
+httpx==0.27.2

@@ -1,0 +1,53 @@
+# Docker Compose stack for the MLOps demo.
+#
+# This file defines two services:
+#   1. ml-api            - the FastAPI house-price prediction service.
+#   2. webhook-receiver  - httpbin, used to echo webhook notifications.
+# Each service normally becomes a separate Docker container.
+# Run with: docker compose up --build
+
+services:
+  ml-api:
+    # Build the image from the current directory using Dockerfile.fastapi.
+    # Change dockerfile to Dockerfile.poetry to use the Poetry build instead.
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    # Tag the built image so it is easy to identify with `docker images`.
+    # The tag often represents the version or environment.
+
+    image: ml-api:dev
+    # Map host port 8000 to container port 8000. Visit http://localhost:8000.
+    # HOST_PORT:CONTAINER_PORT
+
+    ports:
+      - "8000:8000"
+    # Environment variables passed into the container. The API reads these
+    # through app.config.settings.
+    environment:
+      # Webhook URL uses the Compose service name as hostname. Inside the
+      # Compose network, `webhook-receiver` resolves to the receiver container.
+      # Port 80 is the receiver's internal port, not the host-mapped 8080.
+      WEBHOOK_URL: http://webhook-receiver/anything/notify
+      LOG_LEVEL: INFO
+      APP_VERSION: 0.1.0
+    # Ensure the receiver is started before the API. service_started means the
+    # container has launched; it does not wait for the receiver to be "ready".
+    depends_on:
+      webhook-receiver:
+        condition: service_started
+    # Restart the container automatically unless it was explicitly stopped.
+    # Docker Compose supports these depends_on conditions:
+          # service_started — the dependency container has started.
+          # service_healthy — the dependency’s health check reports healthy.
+          # service_completed_successfully — the dependency exits successfully.
+    restart: unless-stopped
+
+  webhook-receiver:
+    # httpbin is a public request/response testing service. It echoes whatever
+    # we POST to it, which makes it useful for demonstrating webhook delivery.
+    image: kennethreitz/httpbin
+    # Map host port 8080 to container port 80. Visit http://localhost:8080.
+    ports:
+      - "8080:80"
+    restart: unless-stopped
