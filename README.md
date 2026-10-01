@@ -155,9 +155,13 @@ model trains automatically when the FastAPI app starts.
 
 From the project root:
 
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+```Conda env 
+cd C:\....\mlops_project01_revised
+
+conda create -n mlops python=3.11 -y
+conda activate mlops
+conda deactivate
+
 ```
 
 ### 2. Install the dependencies
@@ -170,6 +174,7 @@ python -m pip install -r requirements.txt
 
 ```powershell
 pytest -q
+pytest --collect-only
 ```
 
 ### 4. Start the FastAPI server
@@ -179,6 +184,8 @@ uvicorn app.main:app --reload
 ```
 
 The server is now running at `http://localhost:8000`.
+
+http://127.0.0.1:8000/docs
 
 ### 5. Make a prediction
 
